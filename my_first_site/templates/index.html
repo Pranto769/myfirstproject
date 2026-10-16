@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Assistant for Students</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <!-- HEADER -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="font-bold text-xl text-blue-600">StudentFinance PRO</h1>
+            <div id="liveRate" class="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">Loading USD/BDT...
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO + SEARCH -->
+    <section class="text-center py-12 px-6">
+        <h2 class="text-4xl font-bold mb-3">Welcome! Your One-Stop Solution for Cross-Border & Student Finance</h2>
+        <p class="text-gray-600 mb-8">Find tuition, documents, cards, scholarships and save money - all in one place.
+        </p>
+        <div class="max-w-2xl mx-auto relative">
+            <input id="searchBar" type="text" placeholder="Search e.g. Dollar rate, Passport, Bank Statement..."
+                class="w-full p-4 pr-12 rounded-full border-2 border-blue-200 focus:border-blue-500 outline-none shadow-sm">
+            <span class="absolute right-5 top-4 text-gray-400">🔍</span>
+        </div>
+        <p id="noResult" class="hidden mt-6 text-left max-w-2xl mx-auto bg-white p-6 rounded-xl shadow"></p>
+    </section>
+
+    <!-- 5 CARDS -->
+    <section class="max-w-7xl mx-auto px-6 pb-20">
+        <div id="cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <!-- Card 1 -->
+            <div class="card bg-white p-6 rounded-2xl shadow hover:shadow-lg cursor-pointer transition"
+                data-title="Tuition Fee Transfer Payment SWIFT Bank Charge" data-page="tuition">
+                <div class="text-3xl mb-3">💸</div>
+                <h3 class="font-bold">Tuition Fee Transfer</h3>
+                <p class="text-sm text-gray-500 mt-2">How to send tuition fee, SWIFT stuck, high bank charges.</p><span
+                    class="text-blue-600 text-sm mt-3 inline-block">View Solution →</span>
+            </div>
+            <!-- Card 2 -->
+            <div class="card bg-white p-6 rounded-2xl shadow hover:shadow-lg cursor-pointer transition"
+                data-title="Documents Bank Statement Sponsorship Block Account Proof of Fund" data-page="docs">
+                <div class="text-3xl mb-3">📄</div>
+                <h3 class="font-bold">Documents & Proof of Funds</h3>
+                <p class="text-sm text-gray-500 mt-2">Bank statement, sponsorship letter, block account for Germany.</p>
+                <span class="text-blue-600 text-sm mt-3 inline-block">View Solution →</span>
+            </div>
+            <!-- Card 3 -->
+            <div class="card bg-white p-6 rounded-2xl shadow hover:shadow-lg cursor-pointer transition"
+                data-title="Card Forex Dual Currency Dollar Endorsement" data-page="card">
+                <div class="text-3xl mb-3">💳</div>
+                <h3 class="font-bold">Cards & Forex</h3>
+                <p class="text-sm text-gray-500 mt-2">Best card, dual currency, endorsement, low charge ATM.</p><span
+                    class="text-blue-600 text-sm mt-3 inline-block">View Solution →</span>
+            </div>
+            <!-- Card 4 -->
+            <div class="card bg-white p-6 rounded-2xl shadow hover:shadow-lg cursor-pointer transition"
+                data-title="Scholarship Living Cost Part time Job Tax" data-page="scholarship">
+                <div class="text-3xl mb-3">🎓</div>
+                <h3 class="font-bold">Scholarship & Living Cost</h3>
+                <p class="text-sm text-gray-500 mt-2">Scholarship money, monthly cost, part-time job money transfer.</p>
+                <span class="text-blue-600 text-sm mt-3 inline-block">View Solution →</span>
+            </div>
+            <!-- Card 5 -->
+            <div class="card bg-white p-6 rounded-2xl shadow hover:shadow-lg cursor-pointer transition"
+                data-title="Scam Broker Agent Save Money Cheating" data-page="scam">
+                <div class="text-3xl mb-3">🛡️</div>
+                <h3 class="font-bold">Scams & Savings</h3>
+                <p class="text-sm text-gray-500 mt-2">Avoid brokers, save 1 lakh BDT, verify real website.</p><span
+                    class="text-blue-600 text-sm mt-3 inline-block">View Solution →</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- DETAIL PAGE MODAL -->
+    <div id="detailPage" class="hidden fixed inset-0 bg-white z-[100] overflow-y-auto">
+        <div class="max-w-4xl mx-auto p-8">
+            <button onclick="closePage()" class="mb-6 bg-gray-100 px-4 py-2 rounded-full">← Back to Home</button>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const details = {
+            tuition: `<h1 class="text-3xl font-bold">Tuition Fee Transfer - Complete Solution</h1><div class="mt-4 bg-green-50 border border-green-200 p-4 rounded-xl"><b>💰 You Save: 4,000 BDT!</b> Outside: 125 BDT/USD, Here: 120 BDT/USD via right bank.</div><h3 class="font-bold mt-6">Step-by-Step:</h3><ul class="list-decimal ml-6 mt-2 space-y-2"><li>Take Admission Letter + Passport + NID to Bank.</li><li>Fill Form TM for Student File.</li><li>Use SWIFT code correctly.</li></ul><h3 class="font-bold mt-6">Where to Solve:</h3><p>Best Banks: Brac Bank, EBL, City Bank - Student File Department.</p><p>Contact: Brac Bank Student Service: 16221 | EBL: 16477</p><a class="text-blue-600 underline" href="https://www.bb.org.bd" target="_blank">Bangladesh Bank Official Link</a>`,
+            docs: `<h1 class="text-3xl font-bold">Documents & Bank Statement</h1><div class="mt-4 bg-blue-50 p-4 rounded-xl"><b>Required:</b> 6 Months Bank Statement, Solvency, Sponsorship Affidavit, Source of Income.</div><h3 class="font-bold mt-6">Proof of Fund:</h3><p>Canada: 25-30 Lakh BDT, Germany Block Account: 11,208 Euro in Expatrio / Coracle.</p><p>Contact: Expatrio Germany: support@expatrio.com</p><a class="text-blue-600 underline" href="https://www.daad.de" target="_blank">DAAD Official</a>`,
+            card: `<h1 class="text-3xl font-bold">Best Card & Forex</h1><p class="mt-4">Use EBL Dual Currency Aqua Card or Brac Multi-Currency Card. Endorse up to 12,000 USD per year with Passport at any bank.</p><p>Banks: EBL, Brac, City Bank, Islami Bank. Fee: 2% markup vs 3.5% others.</p>`,
+            scholarship: `<h1 class="text-3xl font-bold">Scholarship & Living Cost</h1><p class="mt-4">Monthly Cost: Germany ~850 Euro, Canada ~1200 CAD. Send money via Wise, Remitly - lower fee than bank.</p><a class="text-blue-600 underline" href="https://wise.com" target="_blank">Check Wise Rate</a>`,
+            scam: `<h1 class="text-3xl font-bold">Avoid Scams - Save Money</h1><div class="mt-4 bg-red-50 p-4 rounded-xl"><b>Alert:</b> No broker can guarantee Visa. Do it yourself and save 1 Lakh BDT.</div><p>Verify: Check university website.edu domain, email admission office directly.</p>`
+        };
+
+        // Search
+        const searchBar = document.getElementById('searchBar');
+        const cards = document.querySelectorAll('.card');
+        const noResult = document.getElementById('noResult');
+        searchBar.addEventListener('input', (e) => {
+            let val = e.target.value.toLowerCase();
+            let found = 0;
+            cards.forEach(c => {
+                if (c.dataset.title.toLowerCase().includes(val)) { c.style.display = 'block'; found++ } else { c.style.display = 'none' }
+            });
+            if (found === 0 && val.length > 2) {
+                noResult.classList.remove('hidden');
+                noResult.innerHTML = `<b>No direct match for "${val}"</b><br><br>🔍 <b>Smart Solution via API:</b><br>1. Live Dollar Rate is <span id="innerRate">loading...</span><br>2. Best solution: Check official source.<br><br><a class="text-blue-600 underline mr-3" href="https://www.google.com/search?q=${val}+student+finance+bangladesh" target="_blank">Search on Google</a><a class="text-red-600 underline" href="https://www.youtube.com/results?search_query=${val}+student+abroad" target="_blank">Watch on YouTube</a><br><br><b>Recommended Banks:</b> Brac Bank (16221), EBL (16477), City Bank (16234)<br><b>Contact for help:</b> support@studentfinancepro.com`;
+                fetchRate('innerRate');
+            } else { noResult.classList.add('hidden'); }
+        });
+
+        // Detail page
+        document.querySelectorAll('.card').forEach(c => { c.addEventListener('click', () => { openPage(c.dataset.page) }) });
+        function openPage(id) { document.getElementById('detailContent').innerHTML = details[id]; document.getElementById('detailPage').classList.remove('hidden'); window.scrollTo(0, 0); }
+        function closePage() { document.getElementById('detailPage').classList.add('hidden'); }
+
+        // Live Rate API
+        async function fetchRate(elId = 'liveRate') {
+            try {
+                let res = await fetch('https://open.er-api.com/v6/latest/USD');
+                let data = await res.json();
+                let bdt = data.rates.BDT;
+                document.getElementById(elId).innerText = elId === 'liveRate' ? `Live: 1 USD = ${bdt.toFixed(2)} BDT` : `${bdt.toFixed(2)} BDT`;
+            } catch (e) { document.getElementById(elId).innerText = '1 USD = 117.5 BDT (approx)'; }
+        }
+        fetchRate();
+    </script>
+</body>
+
+</html>
