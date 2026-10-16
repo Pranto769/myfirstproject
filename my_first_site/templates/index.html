@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyMoney - Cross Border Student Finance</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 20px
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a365d
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #555;
+            margin-bottom: 30px
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto
+        }
+
+        .card h2 {
+            margin-top: 0
+        }
+
+        .card.yellow {
+            border-left: 6px solid #f6ad55
+        }
+
+        input,
+        select,
+        button {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box
+        }
+
+        button {
+            background: #2b6cb0;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none
+        }
+
+        button:hover {
+            background: #1a4a7a
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 12px;
+            background: #edf2f7;
+            border-radius: 8px;
+            font-weight: bold
+        }
+    </style>
+</head>
+
+<body>
+    <h1>StudyMoney - Cross Border Student Finance</h1>
+    <p class="subtitle">From Khulna to Global - Smart Money Transfer for Students</p>
+
+    <div class="card">
+        <h2>1. Total Cost Estimator</h2>
+        <input id="tuition" type="number" placeholder="Tuition (e.g. 10000)">
+        <input id="living" type="number" placeholder="Living Cost (e.g. 8000)">
+        <input id="semester" type="number" placeholder="Semesters (e.g. 4)">
+        <button onclick="calculateTotal()">Calculate Total</button>
+        <div id="totalResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Smart Transfer - Compare Methods</h2>
+        <input id="amount" type="number" value="1000" placeholder="Amount in USD">
+        <button onclick="compareTransfer()">Compare Now</button>
+        <div id="compareResult" class="result"></div>
+    </div>
+
+    <div class="card yellow">
+        <h2>3. Personal Transfer Plan</h2>
+        <p>Make your own monthly plan to save money</p>
+        <input id="planAmount" type="number" placeholder="Monthly send (e.g. 500)">
+        <select id="planMethod">
+            <option>Bank</option>
+            <option>bKash</option>
+            <option>Wise</option>
+        </select>
+        <button onclick="makePlan()">Make My Plan</button>
+        <div id="planResult" class="result"></div>
+    </div>
+
+    <div class="card yellow">
+        <h2>4. Sandbox - Practice Without Real Money</h2>
+        <p>Demo Balance: <span id="balance">$5000</span></p>
+        <input id="sandboxAmount" type="number" placeholder="Practice send (e.g. 100)">
+        <button onclick="practiceSend()">Practice Send</button>
+        <div id="sandboxResult" class="result"></div>
+    </div>
+
+    <script>
+        function calculateTotal() {
+            let t = Number(document.getElementById('tuition').value) || 0;
+            let l = Number(document.getElementById('living').value) || 0;
+            let s = Number(document.getElementById('semester').value) || 0;
+            let total = (t + l) * s;
+            document.getElementById('totalResult').innerText = "Total Cost for " + s + " semesters = $" + total;
+        }
+        function compareTransfer() {
+            let a = Number(document.getElementById('amount').value) || 0;
+            let bank = a * 0.05 + 30; let bkash = a * 0.02 + 10; let wise = a * 0.01 + 5;
+            document.getElementById('compareResult').innerHTML = "Bank Fee: $" + bank + "<br>bKash Fee: $" + bkash + " (Save $" + (bank - bkash) + ")<br>Wise Fee: $" + wise + " (Best!)";
+        }
+        let demoBal = 5000;
+        function makePlan() {
+            let am = document.getElementById('planAmount').value;
+            let me = document.getElementById('planMethod').value;
+            document.getElementById('planResult').innerText = "Your Plan: Send $" + am + " every month via " + me + ". You will save 12x fees in a year!";
+        }
+        function practiceSend() {
+            let am = Number(document.getElementById('sandboxAmount').value) || 0;
+            if (am > demoBal) { document.getElementById('sandboxResult').innerText = "Not enough demo balance!"; return; }
+            demoBal -= am;
+            document.getElementById('balance').innerText = "$" + demoBal;
+            document.getElementById('sandboxResult').innerText = "Success! You practiced sending $" + am + ". Remaining demo balance: $" + demoBal;
+        }
+    </script>
+</body>
+
+</html> 
