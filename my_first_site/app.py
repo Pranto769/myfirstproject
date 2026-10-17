@@ -49,7 +49,7 @@ def ask():
     data = request.get_json()
     q = data.get('question','')
     try:
-        response = client.models.generate_content(model="gemini-2.0-flash", contents=q)
+        response = client.models.generate_content(model="gemini-2.5-flash", contents=q)
         return jsonify({"answer": response.text})
     except Exception as e:
         return jsonify({"answer": f"Error: {str(e)}"})
