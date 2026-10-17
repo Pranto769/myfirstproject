@@ -1,4 +1,4 @@
-﻿Flask
-gunicorn
-google-genai
-requests
+﻿Flask==3.0.0
+google-genai==0.3.0
+requests==2.32.3
+gunicorn==22.0.0
