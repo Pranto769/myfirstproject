@@ -1,3 +1,15 @@
+import os
+from flask import Flask, render_template, request, jsonify
+import google.generativeai as genai
+
+app = Flask(__name__)
+
+# Config
+API_KEY = os.environ.get("GEMINI_API_KEY")
+MODEL_NAME = "gemini-1.5-flash"
+
+genai.configure(api_key=API_KEY)
+
 SYSTEM_PROMPT = """
 You are **StudentFinance AI**, a specialized Cross-border & Student Finance Agent built for the Tsinghua University × WeBank FinTechathon (Topic C).
 
@@ -23,10 +35,29 @@ Your role: Help international students (especially from Bangladesh and South Asi
 - For Germany: Clearly distinguish between tuition (private universities) and Semesterbeitrag (public universities), and Blocked Account (Sperrkonto).
 - For Canada: Mention current Proof of Funds requirement (CAD 20,635+ for living costs) and the importance of GIC + source of funds.
 - Strongly discourage Hundi / informal agents.
-- If the user asks about exchange rates, use the latest live rate provided in the context.
-- If information is missing (e.g. specific university or country), ask a clarifying question.
 - Keep a professional but friendly tone.
 - Never invent bank fees or official requirements. If unsure, say so.
 
 You are an AI Agent, not just a chatbot. Focus on helping the student complete real tasks safely and cheaply.
 """
+
+model = genai.GenerativeModel(MODEL_NAME, system_instruction=SYSTEM_PROMPT)
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/ask", methods=["POST"])
+def ask():
+    data = request.get_json()
+    user_msg = data.get("message", "")
+    if not user_msg:
+        return jsonify({"reply": "Please ask a question."})
+    try:
+        response = model.generate_content(user_msg)
+        return jsonify({"reply": response.text})
+    except Exception as e:
+        return jsonify({"reply": f"Error: {str(e)}"})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
