@@ -5,21 +5,25 @@ from google import genai
 app = Flask(__name__)
 api_key = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
-MODEL = "gemini-3.8-flash"
+
+# Try all models - jeta kaj kore setai use hobe. 3.8 age kaj korchilo tai oitao rakhlam
+MODELS_TO_TRY = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.5-flash"]
 
 EXPERT = {
-    "tuition": "### 💸 Tuition Transfer\n**Student File:** AD Branch EBL/BRAC/City Fee 10k BDT.\n**OUR Code:** Must use OUR not SHA. SHA deducts $25-30.\n**MT103:** Demand MT103 receipt after transfer. Email to university.\n**Warning:** No Hundi.",
-    "blocked": "### 🔒 Blocked Account €11,208\n**Expatrio €49 BEST:** Blocked + Health + Insurance Fast 24h.\n**Coracle €25/mo:** Cheaper.\nSend €11,250 via OUR with Expatrio ID. ~14.1 Lakh BDT.",
-    "proof": "### 📄 Canada GIC $20,635\nGIC from CIBC/Scotia/SBI. Get cert for visa.\nBank Statement 6 months stable, Tuition + $10k CAD.",
-    "card": "### 💳 Dual Currency Card\nEBL Dual Best ($12k), BRAC Best App, City AMEX Lounge.",
-    "insurance": "### 🏥 Health Insurance\nGermany €120/mo, Canada GuardMe $200/yr, UK IHS £1035/yr, USA $1500/yr.",
-    "file": "### 📁 Student File Opening\nAD Branch docs: Passport Admission NID Certs Fee 5k-15k BDT.",
+    "tuition": "### 💸 Tuition Transfer\nAD Branch EBL/BRAC/City Fee 10k. OUR not SHA. MT103 receipt must.",
+    "blocked": "### 🔒 Blocked Account €11,208\nExpatrio €49 BEST (Blocked+Health+Insurance). Coracle €25/mo cheaper. Send €11,250 via OUR.",
+    "proof": "### 📄 Canada GIC $20,635\nCIBC/Scotia GIC + 6 month bank statement.",
+    "card": "### 💳 Dual Currency Card\nEBL Dual Best ($12k), BRAC Best App.",
+    "insurance": "### 🏥 Health Insurance\nGermany €120/mo, Canada GuardMe $200/yr, UK IHS £1035/yr.",
+    "file": "### 📁 Student File Opening\nAD Branch docs: Passport Admission NID. Fee 5k-15k BDT.",
     "visa": "### 🛂 Visa & SEVIS Fee\nUSA SEVIS $350 + Visa $185. Pay with YOUR EBL card.",
-    "loan": "### 🏦 Education Loan\nGermany: Loan NOT for Blocked. Canada: GIC must be cash. BD Banks 10-30 Lakh 9-12% interest."
+    "loan": "### 🏦 Education Loan\nGermany: Loan NOT for Blocked. Canada: GIC must be cash.",
+    "beginner": "### 🟢 Complete Guideline - For Beginners\n**Step 1:** Select Country (Germany/Canada etc)\n**Step 2:** Student File Open at AD Branch\n**Step 3:** Dual Currency Card (EBL/BRAC)\n**Step 4:** Blocked/GIC + Insurance + Tuition Transfer via OUR + MT103\n**Step 5:** Visa. Ask me: 'I am new for Germany, guide from zero'"
 }
 
 def router(q):
     ql=q.lower()
+    if any(x in ql for x in ["new","beginner","zero","know nothing","guideline"]): return EXPERT["beginner"]
     if any(x in ql for x in ["tuition","swift","our","mt103"]): return EXPERT["tuition"]
     if any(x in ql for x in ["blocked","germany"]): return EXPERT["blocked"]
     if any(x in ql for x in ["gic","proof","canada"]): return EXPERT["proof"]
@@ -28,20 +32,30 @@ def router(q):
     if "file" in ql: return EXPERT["file"]
     if any(x in ql for x in ["visa","sevis"]): return EXPERT["visa"]
     if "loan" in ql: return EXPERT["loan"]
-    return "Select a destination or service above for detailed guide."
+    return EXPERT["beginner"]
 
-def rate(): 
-    try:
-        r=requests.get("https://open.er-api.com/v6/latest/USD",timeout=3)
-        return f"Live USD={r.json()['rates']['BDT']:.0f} BDT"
-    except: return "Live USD=117 BDT"
+def get_ai_answer(q):
+    if not client: return None
+    for model_name in MODELS_TO_TRY:
+        try:
+            resp = client.models.generate_content(model=model_name, contents=f"You are StudentFinance AGENT, expert for BD students. Answer in detail, no 'I am AGENT' intro. Q: {q}")
+            print(f"Success with {model_name}")
+            return resp.text
+        except Exception as e:
+            print(f"Failed {model_name}: {e}")
+            continue
+    return None
 
 HTML = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>StudentFinance</title>
 <script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<style>#chat{height:calc(100vh - 250px)}.msg{max-width:85%}.user{background:#2563eb;color:#fff;margin-left:auto}.ai{background:#fff;border:1px solid #e5e7eb}</style></head>
+<style>#chat{height:calc(100vh - 280px)}.msg{max-width:85%}.user{background:#2563eb;color:#fff;margin-left:auto}.ai{background:#fff;border:1px solid #e5e7eb}</style></head>
 <body class="bg-gray-50"><header class="bg-white border-b sticky top-0 z-50"><div class="max-w-6xl mx-auto px-4 py-3"><h1 class="font-bold text-blue-700">🎓 StudentFinance AGENT</h1><p class="text-xs text-gray-500">Expert guide for study abroad and finance</p></div></header>
 <main class="max-w-6xl mx-auto px-4 py-4"><div id="chat" class="overflow-y-auto space-y-4 pb-4">
-<div class="ai msg p-5 rounded-2xl"><h2 class="font-bold">Welcome! 👋</h2><p class="text-sm text-gray-600 mt-1 mb-4">Expert guide for study abroad and finance. Select destination, service and below.</p>
+<div class="ai msg p-5 rounded-2xl">
+<h2 class="font-bold">Welcome! 👋</h2><p class="text-sm text-gray-600 mt-1 mb-4">Expert guide for study abroad and finance. Select destination, service and below.</p>
+
+<p class="text-xs font-bold text-green-600 mb-2">🟢 NEW TO THIS? START HERE</p>
+<div class="mb-6"><button onclick="ask('I am new, I know nothing, give me complete guideline from zero')" class="w-full bg-green-50 border-2 border-green-500 text-green-700 px-4 py-3 rounded-xl text-sm font-bold">🚀 I'm New - Complete Guideline For Me (I Know Nothing)</button></div>
 
 <p class="text-xs font-bold text-gray-500 mb-2">SELECT DESTINATION</p>
 <div class="flex flex-wrap gap-2 mb-6">
@@ -84,13 +98,9 @@ def home(): return render_template_string(HTML)
 @app.route("/ask", methods=["POST"])
 def ask_agent():
     q=request.get_json().get("question","")
-    try:
-        if client:
-            resp=client.models.generate_content(model=MODEL, contents=f"Answer: {q}. No intro 'I am AGENT'. {rate()}")
-            if "I am StudentFinance AGENT" in resp.text: return jsonify({"answer": router(q)})
-            return jsonify({"answer": resp.text})
-    except: pass
-    return jsonify({"answer": router(q)})
+    ai_ans = get_ai_answer(q)
+    if ai_ans: return jsonify({"answer": ai_ans})
+    return jsonify({"answer": router(q) + "\n\n⚠️ Offline Mode - AI quota/model error. Check Render Logs."})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)))
