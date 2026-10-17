@@ -1,42 +1,58 @@
-from flask import Flask, render_template, request, jsonify
 import os
-import google.generativeai as genai
+from flask import Flask, request, jsonify, render_template_string
+from google import genai
 
 app = Flask(__name__)
 
-# Gemini Setup
+# API Key Render Environment থেকে নেবে
 api_key = os.environ.get("GEMINI_API_KEY")
+client = None
 if api_key:
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
-# তোমার নিজের ডাটা
-my_data = {
-    "passport": "Passport করতে e-passport.gov.bd তে যান। লাগবে NID, ছবি।",
-    "dollar": "Live Dollar Rate is 123.14 BDT (API থেকে আসছে)",
-    "scholarship": "Scholarship এর জন্য DAAD, Erasmus দেখুন।",
-    "visa": "Student Visa এর জন্য Bank Statement, IELTS লাগবে।"
+HTML = """
+<!DOCTYPE html>
+<html>
+<head><title>Finance Assistant</title>
+<style>
+body{font-family:Arial;max-width:700px;margin:40px auto;padding:20px}
+input{width:80%;padding:10px} button{padding:10px 20px}
+#ans{margin-top:20px;background:#f5f5f5;padding:15px;border-radius:8px}
+</style>
+</head>
+<body>
+<h2>💰 Finance Assistant for Students</h2>
+<input id="q" placeholder="যেমন: টাকা কিভাবে সেভ করবো?">
+<button onclick="ask()">Ask</button>
+<div id="ans"></div>
+<script>
+async function ask(){
+ let q=document.getElementById('q').value;
+ document.getElementById('ans').innerText='Thinking...';
+ let res=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+ let data=await res.json();
+ document.getElementById('ans').innerText=data.answer;
 }
+</script>
+</body>
+</html>
+"""
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template_string(HTML)
 
-@app.route('/search')
-def search():
-    query = request.args.get('q', '').lower()
-
-    # 1. প্রথমে তোমার নিজের ডাটা থেকে খোঁজা
-    for key in my_data:
-        if key in query:
-            return jsonify({"answer": my_data[key]})
-
-    # 2. না পেলে Gemini থেকে আনা
+@app.route('/ask', methods=['POST'])
+def ask():
+    if not client:
+        return jsonify({"answer": "GEMINI_API_KEY is not set in Render Environment"})
+    data = request.get_json()
+    q = data.get('question','')
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(f"You are StudentFinance PRO assistant. Answer this: {query}")
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=q)
         return jsonify({"answer": response.text})
     except Exception as e:
-        return jsonify({"answer": f"AI Error: {str(e)}। API Key চেক করুন।"})
+        return jsonify({"answer": f"Error: {str(e)}"})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
