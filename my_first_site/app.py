@@ -5,68 +5,131 @@ from google import genai
 
 app = Flask(__name__)
 
-# --- Gemini Setup ---
+# ====================== CONFIG ======================
 api_key = os.environ.get("GEMINI_API_KEY")
-client = None
-if api_key:
-    client = genai.Client(api_key=api_key)
-    print("Gemini Client Initialized")
+client = genai.Client(api_key=api_key) if api_key else None
+MODEL_PRIMARY = "gemini-2.0-flash"
+MODEL_FALLBACK = "gemini-2.0-flash"
 
-# Model - তুমি 3.8 চেয়েছিলে, এটাই Final
-MODEL_ID = "gemini-3.8-flash"
+# ====================== SYSTEM PROMPT ======================
+SYSTEM_PROMPT = """
+You are StudentFinance AI, a specialized Cross-border & Student Finance Agent for the Tsinghua University × WeBank FinTechathon (Topic C).
+Goal: Help Bangladeshi students with real financial tasks.
+Strict Format:
+1. Quick Summary (2-4 lines)
+2. Step-by-Step Guide
+3. Important Notes / Warnings
+4. Cost Overview (when relevant)
+End with: *This is general guidance only, not official financial advice. Please verify with your bank and official sources.*
+Rules: Always recommend OUR fee code for SWIFT, keep MT103, discourage Hundi, Germany=Blocked Account €11,208 separate from tuition, Canada=CAD 20635+. Use live rate. Be practical and student-friendly. Support Bangla and English mix.
+"""
 
-def get_exchange_rate():
+def get_live_rate(base="USD", target="BDT"):
     try:
-        r = requests.get("https://open.er-api.com/v6/latest/EUR", timeout=4)
-        data = r.json()
-        eur_bdt = data['rates'].get('BDT', 127)
-        return f"\n[LIVE RATE] 1 EUR = {eur_bdt} BDT"
+        res = requests.get(f"https://open.er-api.com/v6/latest/{base}", timeout=6)
+        return f"1 {base} = {res.json()['rates'].get(target)} {target}"
     except:
-        return "\n[LIVE RATE] 1 EUR = ~127 BDT"
+        return "Rate unavailable"
 
-def generate_checklist(text):
-    t = text.lower()
-    if "germany" in t:
-        return "Checklist Germany: Blocked Account 11,208 EUR, Admission, Visa, Insurance"
-    if "italy" in t:
-        return "Checklist Italy: Universitaly, CIMEA, Bank Solvency"
-    return "Checklist: Admission Letter, Financial Proof, Student File"
+def get_checklist(country):
+    c = country.lower()
+    data = {
+        "germany": ["Admission Letter", "Blocked Account (€11,208)", "Health Insurance", "Semesterbeitrag"],
+        "canada": ["LOA", "GIC + Proof of Funds (CAD 20,635+)", "Tuition Receipt"],
+    }
+    items = data.get(c, ["Admission Letter", "Passport", "Proof of Funds"])
+    return "Checklist: " + ", ".join(items)
 
+# ====================== FINAL UI WITH PERFECT FORMATTING ======================
 HTML = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>StudentFinance AI</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{font-family:system-ui;background:#f6f7fb;padding:15px}
-.box{max-width:720px;margin:auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-h2{color:#4f46e5;margin:0} small{color:#666}
-input,button{width:100%;padding:14px;margin-top:12px;border-radius:10px;border:1px solid #e5e7eb;box-sizing:border-box}
-button{background:#4f46e5;color:#fff;font-weight:700;border:none;cursor:pointer}
-#ans{margin-top:18px;white-space:pre-wrap;background:#f9fafb;padding:14px;border-radius:10px;border:1px solid #eef2ff;min-height:60px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudentFinance AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    #chat-container { height: calc(100vh - 200px); }
+    .message { max-width: 85%; line-height: 1.65; }
+    .user-msg { background: #2563eb; color: white; margin-left: auto; border-bottom-right-radius: 4px; }
+    .ai-msg { background: #fff; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .ai-msg h3 { font-size: 15px; font-weight: 700; color: #1e40af; margin: 16px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+    .ai-msg ul, .ai-msg ol { margin: 8px 0 8px 20px; }
+    .ai-msg li { margin-bottom: 6px; font-size: 14px; }
+    .ai-msg p { margin-bottom: 10px; font-size: 14px; }
+  </style>
 </head>
-<body>
-<div class="box">
-<h2>🎓 StudentFinance AI</h2>
-<small>Powered by Gemini 3.8 Flash | Tsinghua x WeBank FinTechathon</small>
-<input id="q" placeholder="Ex: Germany blocked account process? SWIFT charge?">
-<button onclick="ask()">Ask AI</button>
-<div id="ans">Answer will appear here...</div>
-</div>
+<body class="bg-gray-50 text-gray-800">
+  <header class="bg-white border-b sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div><h1 class="text-lg font-bold text-blue-700">🎓 StudentFinance AI</h1><p class="text-xs text-gray-500">For students who don't know where to start • Tsinghua x WeBank</p></div>
+      <div class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">Gemini</div>
+    </div>
+  </header>
+  <main class="max-w-4xl mx-auto px-4 py-4">
+    <div id="chat-container" class="overflow-y-auto space-y-4 pb-4">
+      <div class="ai-msg message p-5 rounded-2xl">
+        <p class="font-bold text-base mb-1">নমস্কার! তুমি কি বিদেশে পড়তে যেতে চাও?</p>
+        <p class="text-sm text-gray-600 mb-4">চিন্তা নেই, কিছু না জানলেও হবে। নিচ থেকে সিলেক্ট করো।</p>
+        <p class="text-xs font-semibold text-gray-500 mb-2">STEP 1: কোন দেশে?</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button onclick="askExample('I want to go to Germany for Bachelors, give me full financial roadmap from Bangladesh')" class="bg-white border border-blue-200 text-blue-700 px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-600 hover:text-white">🇩🇪 Germany</button>
+          <button onclick="askExample('I want to go to Canada, what is the full proof of funds and GIC process?')" class="bg-white border px-4 py-2 rounded-full text-sm hover:bg-blue-50">🇨🇦 Canada</button>
+          <button onclick="askExample('I want to go to UK')" class="bg-white border px-4 py-2 rounded-full text-sm hover:bg-blue-50">🇬🇧 UK</button>
+          <button onclick="askExample('I want to go to USA')" class="bg-white border px-4 py-2 rounded-full text-sm hover:bg-blue-50">🇺🇸 USA</button>
+        </div>
+        <div class="bg-blue-600 text-white p-3 rounded-xl mt-2">
+          <button onclick="askExample('I am new from Bangladesh, I know nothing about studying abroad finance. Give me a complete step-by-step roadmap in simple Bangla.')" class="w-full bg-white text-blue-700 font-bold py-2 rounded-lg text-sm">✨ আমি একদম নতুন, শুরু থেকে বুঝিয়ে দাও</button>
+        </div>
+      </div>
+    </div>
+    <div class="sticky bottom-0 bg-gray-50 pt-3">
+      <div class="bg-white border rounded-2xl p-2 flex gap-2 shadow-sm">
+        <input id="user-input" type="text" placeholder="বাংলায় লিখতে পারো... জার্মানির জন্য কত টাকা লাগবে?" class="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm" onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-sm font-medium">Send</button>
+      </div>
+    </div>
+  </main>
 <script>
-async function ask(){
- const q=document.getElementById('q').value;
- const el=document.getElementById('ans');
- if(!q){el.innerText='Please type a question';return}
- el.innerText='Thinking with Gemini 3.8 Flash...';
- try{
-  const res=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
-  const data=await res.json();
-  el.innerText=data.answer;
- }catch(e){ el.innerText='Network Error: '+e.message }
-}
+  const chatContainer = document.getElementById('chat-container');
+  const input = document.getElementById('user-input');
+  function getRelatedQuestions(q){
+    q=q.toLowerCase();
+    if(q.includes('germany')) return ["Blocked Account ছাড়া উপায় আছে?","Semesterbeitrag কত?","Health Insurance কত লাগে?"];
+    if(q.includes('canada')) return ["GIC আর POF কি একই?","Bank Statement কত মাসের?"];
+    if(q.includes('tuition')||q.includes('swift')) return ["OUR code না দিলে কি হবে?","MT103 কেন রাখব?","Student File কিভাবে খুলব?"];
+    return ["মোট কত টাকা খরচ হবে?","কোন ব্যাংক ভালো?","Hundi তে Risk কি?"];
+  }
+  function addMessage(content, isUser=false, originalQuestion=""){
+    const div = document.createElement('div');
+    div.className = `message p-4 rounded-2xl ${isUser ? 'user-msg' : 'ai-msg'}`;
+    if(isUser){ div.innerText = content; }
+    else{ div.innerHTML = marked.parse(content); }
+    if(!isUser && originalQuestion){
+      const related = getRelatedQuestions(originalQuestion);
+      let h = `<div class="mt-4 pt-3 border-t"><p class="text-xs font-bold text-gray-500 mb-2">🔍 আরও জানতে পারো:</p><div class="flex flex-wrap gap-2">`;
+      related.forEach(r=>{ h+=`<button onclick="askExample('${r}')" class="text-xs bg-blue-50 text-blue-700 border px-3 py-1.5 rounded-full hover:bg-blue-600 hover:text-white">+ ${r}</button>`; });
+      h+=`</div><button onclick="document.getElementById('user-input').focus()" class="mt-3 w-full text-xs bg-gray-900 text-white py-2 rounded-lg">✏️ এর বাইরে অন্য কিছু লিখতে চাও? এখানে লিখো</button></div>`;
+      div.innerHTML+=h;
+    }
+    chatContainer.appendChild(div);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+  function askExample(t){ input.value=t; sendMessage(); }
+  async function sendMessage(){
+    const q=input.value.trim(); if(!q) return;
+    addMessage(q,true); input.value='';
+    const loading=document.createElement('div'); loading.className='ai-msg message p-4 rounded-2xl text-gray-500'; loading.innerHTML='Thinking...'; chatContainer.appendChild(loading);
+    chatContainer.scrollTop=chatContainer.scrollHeight;
+    try{
+      const res=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+      const data=await res.json(); chatContainer.removeChild(loading); addMessage(data.answer,false,q);
+    }catch(e){ chatContainer.removeChild(loading); addMessage('Sorry, error. Try again.',false,""); }
+  }
 </script>
 </body>
 </html>
@@ -77,32 +140,31 @@ def home():
     return render_template_string(HTML)
 
 @app.route("/ask", methods=["POST"])
-def ask_ai():
+def ask():
+    if not client:
+        return jsonify({"answer": "Error: GEMINI_API_KEY missing."})
+    data = request.get_json()
+    question = data.get("question","").strip()
+    if not question:
+        return jsonify({"answer": "Please type a question."})
     try:
-        user_q = request.json.get("question","").strip()
-        if not user_q:
-            return jsonify({"answer": "Please ask something!"})
-        if not client:
-            return jsonify({"answer": "ERROR: GEMINI_API_KEY not set in Render Environment Variables."})
-
-        extra = get_exchange_rate() + "\n" + generate_checklist(user_q)
-        
-        prompt = f"You are StudentFinance AI. Help Bangladeshi students with abroad study finance. Be concise, step-by-step. User: {user_q} Context: {extra}"
-
-        response = client.models.generate_content(
-            model=MODEL_ID,
-            contents=prompt
-        )
-        return jsonify({"answer": response.text})
-        
-    except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
-        # Fallback: যদি 3.8 fail করে, 2.0 দিয়ে try করবে
+        extra=""
+        lq=question.lower()
+        if any(w in lq for w in ["rate","usd","bdt","eur","euro","dollar","exchange"]):
+            extra+=f"\nLive Rates: {get_live_rate('USD','BDT')} | {get_live_rate('EUR','BDT')}"
+        for co in ["germany","canada","uk","usa"]:
+            if co in lq:
+                extra+=f"\n{get_checklist(co)}"
+                break
+        full_prompt = f"{SYSTEM_PROMPT}\n\nUser: {question}\nContext: {extra}\n\nAnswer in strict format with markdown headings."
         try:
-            fallback = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-            return jsonify({"answer": fallback.text + "\n\n[Note: Answered with fallback model]"})
-        except Exception as e2:
-            return jsonify({"answer": f"AI Error: {str(e)}"})
+            response = client.models.generate_content(model=MODEL_PRIMARY, contents=full_prompt)
+        except:
+            response = client.models.generate_content(model=MODEL_FALLBACK, contents=full_prompt)
+        return jsonify({"answer": response.text.strip()})
+    except Exception as e:
+        return jsonify({"answer": f"Error: {str(e)}"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
