@@ -185,6 +185,20 @@ async function send(){const q=inp.value.trim();if(!q)return;addMsg(q,true);inp.v
 @app.route("/")
 def home(): return render_template_string(HTML)
 
+@app.route("/wallet-demo")
+def wallet_demo():
+    return render_template_string("""
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>EduPay Demo</title>
+<style>body{background:#0a0a0a;color:white;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.card{background:#1a1a1a;border:1px solid #00FF88;border-radius:16px;padding:30px;width:90%;max-width:380px;text-align:center}.btn{background:#00FF88;color:black;width:100%;padding:15px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}</style>
+</head><body><div class="card">
+<h2 style="color:#00FF88">EduPay Global</h2><p style="font-size:11px;color:#aaa">Team: Tiger Panda</p>
+<h3>500,000 BDT<br><span style="color:#00FF88;font-size:14px">~ $4,537 USD</span></h3>
+<p style="background:#222;padding:8px;border-radius:8px;font-size:12px">✅ KYC Verified | Univ. of Birmingham</p>
+<button class="btn" onclick="alert('Payment Successful! Mock Tx: 0x8a3f...f12a')">Pay $5,000 Tuition Now</button>
+<p style="font-size:10px;color:#666;margin-top:15px">Mock Tx: 0x8a3f...f12a - Ready for FISCO BCOS<br>FinTechathon 2026 Demo</p>
+</div></body></html>
+    """)
+
 @app.route("/ask", methods=["POST"])
 def ask_agent():
     data = request.get_json()
